@@ -113,7 +113,7 @@
         /* Add underline when mouse is over news text */
         .ticker-item:hover { text-decoration: underline; }
 
-        /* The Magic: Move from 0 to -50%. Because content is doubled, 
+        /* Move from 0 to -50%. Because content is doubled, 
            resetting to 0 looks perfectly smooth to the eye. */
         @keyframes loop {
             0% { transform: translateX(0); }
@@ -226,15 +226,20 @@
                 };
 
                 // ARROW BUTTONS EVENT LISTENERS
-                // Left button: moves news to the right (backward)
+                // Left button
                 btnLeft.addEventListener('mousedown', () => startMoving(1));
-                // Right button: moves news to the left (forward)
-                btnRight.addEventListener('mousedown', () => startMoving(-1));
+                btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); startMoving(1); });
                 
-                // Stop moving if mouse is released or moves away from button
+                // Right button
+                btnRight.addEventListener('mousedown', () => startMoving(-1));
+                btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); startMoving(-1); });
+                
+                // Stop on release
                 [btnLeft, btnRight].forEach(btn => {
                     btn.addEventListener('mouseup', stopMoving);
                     btn.addEventListener('mouseleave', stopMoving);
+                    btn.addEventListener('touchend', stopMoving);
+                    btn.addEventListener('touchcancel', stopMoving);
                 });
 
                 // SAVE PROGRESS: Every 100ms, save the current position to memory
