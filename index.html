@@ -10,7 +10,7 @@
             --dark-blue: #1d4ed8;   /* Darker blue for when buttons are clicked */
         }
 
-        /* Standard reset: remove extra space and fix box math */
+        /* Standard reset: remove extra space */
         * { box-sizing: border-box; margin: 0; padding: 0; } 
         /* Set font and background color for the whole page */
         body { font-family: system-ui, sans-serif; background: #f8fafc; }
@@ -21,100 +21,96 @@
         /* The main blue bar that holds everything */
         .ticker-container {
             background: var(--accent-blue);
-            color: white;           /* White text */
-            overflow: hidden;      /* Hide everything that goes outside the bar */
-            display: flex;          /* Put items in a horizontal line */
-            align-items: center;    /* Center items vertically */
-            height: 40px;           /* Height of the ticker bar */
-            user-select: none;      /* Prevent user from highlighting text with mouse */
+            color: white;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            height: 40px;
+            user-select: none;
         }
 
         /* The left section with "NEWS" text and arrows */
         .ticker-header {
             background: var(--accent-blue);
-            z-index: 10;            /* Keep this above the scrolling text */
-            display: flex;          /* Horizontal layout */
-            align-items: center;    /* Vertical center */
-            height: 100%;           /* Fill the bar height */
-            box-shadow: 10px 0 15px -5px rgba(0,0,0,0.2); /* Shadow to separate from news */
-            padding-left: 0.5rem;   /* Space on the left */
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            box-shadow: 10px 0 15px -5px rgba(0,0,0,0.2);
+            padding-left: 0.5rem;
         }
 
-        /* Style for the "NEWS" word */
+        /* Style for the "NEWS" word label */
         .ticker-label {
-            font-weight: 800;       /* Extra bold text */
-            white-space: nowrap;    /* Do not wrap text to new line */
-            font-size: 0.75rem;     /* Small text size */
-            letter-spacing: 0.05em; /* Space between letters */
-            margin-right: 0.5rem;     /* Space after the word */
+            font-weight: 800;
+            white-space: nowrap;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            margin-right: 0.5rem;
         }
 
         /* Box that holds the arrow buttons */
         .ticker-controls {
-            display: flex;          /* Horizontal layout */
-            gap: 2px;               /* Small space between arrows */
-            height: 100%;           /* Fill height */
-            align-items: center;    /* Vertical center */
-            padding-right: 1rem;    /* Space before news starts */
+            display: flex;
+            gap: 2px;
+            height: 100%;
+            align-items: center;
+            padding-right: 1rem;
         }
 
         /* Individual arrow button style */
         .arrow-btn {
-            width: 24px;            /* Width of button */
-            height: 24px;           /* Height of button */
-            display: flex;          /* Center the arrow inside */
-            align-items: center;    /* Vertical center arrow */
-            justify-content: center;/* Horizontal center arrow */
-            background: rgba(255,255,255,0.1); /* See-through white background */
-            border-radius: 4px;     /* Rounded corners */
-            cursor: pointer;        /* Change mouse to hand icon */
-            font-size: 12px;        /* Arrow icon size */
-            transition: background 0.2s; /* Smooth color change on hover */
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
         }
 
-        /* Button color when mouse is over it */
         .arrow-btn:hover { background: rgba(255,255,255,0.2); }
-        /* Button color when mouse is clicking down */
         .arrow-btn:active { background: var(--dark-blue); }
 
         /* The "hole" that the news scrolls through */
         .ticker-window {
-            flex-grow: 1;           /* Take all remaining space */
-            overflow: hidden;      /* Hide news that is outside this box */
-            display: flex;          /* Container for the track */
+            flex-grow: 1;
+            overflow: hidden;
+            display: flex;
         }
 
         /* The long line of text that moves */
         .ticker-track {
-            display: flex;          /* Horizontal line of news items */
-            width: max-content;     /* Make track as long as the content needs */
-            gap: var(--ticker-gap); /* Space between news items */
-            padding-left: var(--ticker-gap); /* Gap before the first item */
-            white-space: nowrap;    /* No line breaks */
-            animation: loop var(--ticker-duration) linear infinite; /* Run the loop animation forever */
-            will-change: transform; /* Hint to browser to make animation smooth */
+            display: flex;
+            width: max-content;
+            gap: var(--ticker-gap);
+            padding-left: var(--ticker-gap);
+            white-space: nowrap;
+            animation: loop var(--ticker-duration) linear infinite;
+            will-change: transform;
         }
 
-        /* Stop movement when mouse is over any part of the ticker */
-        .ticker-container:hover .ticker-track {
-            animation-play-state: paused;
+        /* CSS handles ALL pausing — desktop hover + mobile arrow class */
+        .ticker-container:hover .ticker-track,
+        .ticker-track.is-manual {
+            animation-play-state: paused !important;
         }
 
         /* Style for each news link */
         .ticker-item {
-            color: white;         /* White text */
-            text-decoration: none;  /* Remove default underline */
-            font-size: 0.85rem;     /* Readable text size */
-            font-weight: 500;       /* Medium boldness */
-            display: flex;          /* Layout for icons + text */
-            align-items: center;    /* Vertical center */
+            color: white;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
         }
 
-        /* Add underline when mouse is over news text */
         .ticker-item:hover { text-decoration: underline; }
 
-        /* Move from 0 to -50%. Because content is doubled, 
-           resetting to 0 looks perfectly smooth to the eye. */
         @keyframes loop {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); }
@@ -136,7 +132,6 @@
             </div>
         </div>
         
-        <!-- News article links-->
         <div class="ticker-window">
             <div id="newsTickerInner" class="ticker-track">
                 <a href="#" class="ticker-item">🚀 Rocket startup lands first reusable booster on a barge</a>
@@ -152,80 +147,66 @@
     </div>
 
     <script>
-        // Start the logic function immediately
         (function initAdvancedTicker() {
-            'use strict'; // Force browser to follow strict coding rules
+            'use strict';
             
-            // Get HTML elements to use in code
             const ticker = document.getElementById('newsTickerInner');
             const debugUI = document.getElementById('debugOutput');
             const btnLeft = document.getElementById('btnLeft');
             const btnRight = document.getElementById('btnRight');
-            const KEY = 'tickerProgressMs'; // Name of the key to save in browser memory
+            const KEY = 'tickerProgressMs';
 
-            // 1. CLONE: Take all news items and copy them to the end.
-            // This makes the track 2x longer so we can loop seamlessly.
+            // CLONE: double the content for smooth looping visual (css translateX -50%)
             ticker.innerHTML += ticker.innerHTML;
 
-            let moveDirection = 0; // 0 = no move, -1 = forward, 1 = backward
-            let isHolding = false; // Is the user currently clicking the button?
-            let anim = null;       // Variable to store the CSS animation object
+            let moveDirection = 0;
+            let isHolding = false;
+            let anim = null;
 
-            // Function that runs every frame when user clicks arrows
+            // Manual scrub loop — runs every frame while arrow is held
             function manualMoveLoop() {
-                if (!isHolding || !anim) return; // Exit if user stopped clicking
+                if (!isHolding || !anim) return;
 
-                // Find total length of animation in milliseconds
                 const duration = anim.effect.getComputedTiming().duration;
-                
-                // Calculate next position. 25ms per frame is the speed.
                 let nextTime = anim.currentTime + (moveDirection * 25);
 
-                // If we scroll back before the start (0), jump to the end
                 if (nextTime < 0) nextTime = duration;
-                // If we scroll past the end, jump to the start
                 if (nextTime > duration) nextTime = 0;
 
-                // Set the animation to the new calculated time
                 anim.currentTime = nextTime;
-                
-                // Tell browser to run this function again on next screen refresh
                 requestAnimationFrame(manualMoveLoop);
             }
 
-            // Function to setup the loop and browser memory
             function startPersistence() {
-                // Get all animations running on the ticker
                 const animations = ticker.getAnimations();
                 
-                // If browser hasn't started the animation yet, wait and try again
                 if (animations.length === 0) {
                     requestAnimationFrame(startPersistence);
                     return;
                 }
 
-                anim = animations[0]; // Store the active animation
-                const durationMs = anim.effect.getComputedTiming().duration; // Get total time
+                anim = animations[0];
+                const durationMs = anim.effect.getComputedTiming().duration;
 
-                // RESTORE: Check if we have a saved time in browser memory
+                // Restore saved position
                 const savedMs = sessionStorage.getItem(KEY);
                 if (savedMs !== null) {
-                    anim.currentTime = parseFloat(savedMs); // Put news back where user left it
+                    anim.currentTime = parseFloat(savedMs);
                 }
 
-                // Logic to start moving when button is pressed
+                // CSS class pauses the animation
                 const startMoving = (dir) => {
-                    isHolding = true;   // Start holding state
-                    moveDirection = dir; // Set direction
-                    manualMoveLoop();   // Start the move function
+                    isHolding = true;
+                    moveDirection = dir;
+                    ticker.classList.add('is-manual');
+                    manualMoveLoop();
                 };
 
-                // Logic to stop moving
                 const stopMoving = () => {
-                    isHolding = false;  // End holding state
+                    isHolding = false;
+                    ticker.classList.remove('is-manual');
                 };
 
-                // ARROW BUTTONS EVENT LISTENERS
                 // Left button
                 btnLeft.addEventListener('mousedown', () => startMoving(1));
                 btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); startMoving(1); });
@@ -242,21 +223,17 @@
                     btn.addEventListener('touchcancel', stopMoving);
                 });
 
-                // SAVE PROGRESS: Every 100ms, save the current position to memory
+                // Save progress every 100ms
                 setInterval(() => {
-                    // Use modulo (%) to keep time inside 0 to duration range
                     const currentMs = anim.currentTime % durationMs;
                     if (!isNaN(currentMs)) {
-                        // Save to session storage as a string
                         sessionStorage.setItem(KEY, currentMs.toFixed(0));
-                        // Show progress percentage in the green status bar
                         const progressPct = (currentMs / durationMs) * 100;
-                        debugUI.innerText = `Persistence Active: ${progressPct.toFixed(1)}% complete`;
+                        debugUI.innerText = `Length: ${progressPct.toFixed(1)}% complete`;
                     }
                 }, 100);
             }
 
-            // Run the main setup function
             startPersistence();
         })();
     </script>
