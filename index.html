@@ -189,7 +189,7 @@
                 if (!isHolding || !anim) return; // stop if user released the button
 
                 var duration = anim.effect.getComputedTiming().duration; // total animation length in ms
-                var nextTime = anim.currentTime + (moveDirection * 25);  // move 25ms in chosen direction
+                var nextTime = anim.currentTime + (moveDirection * 50);  // move 25ms in chosen direction
 
                 // wrap around: if we go past the end, start from beginning (and reverse)
                 if (nextTime < 0) nextTime = duration;
