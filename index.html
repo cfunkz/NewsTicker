@@ -1,38 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Interactive Seamless Ticker</title>
+    <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Interactive Ticker</title>
     <style>
         :root {
-            --ticker-duration: 30s; /* Time for one full loop. Bigger number = slower speed */
-            --ticker-gap: 3rem;     /* Space between news items */
-            --accent-blue: #2563eb; /* Primary blue color for the background */
-            --dark-blue: #1d4ed8;   /* Darker blue for when buttons are clicked */
+            --ticker-duration: 50s; /* How long one full scroll takes. Bigger = slower */
+            --ticker-gap: 3rem;     /* Space between each news item */
+            --accent-blue: #2563eb; /* Main blue color */
+            --dark-blue: #1d4ed8;   /* Darker blue when button is pressed */
         }
 
-        /* Standard reset: remove extra space */
+        /* Remove default spacing, use border-box for easier math */
         * { box-sizing: border-box; margin: 0; padding: 0; } 
-        /* Set font and background color for the whole page */
         body { font-family: system-ui, sans-serif; background: #f8fafc; }
 
-        /* Small bar at top to show if the script is working */
+        /* Green debug bar at the top that shows scroll position */
         .status-bar { background: #0f172a; color: #4ade80; font-family: monospace; font-size: 11px; padding: 6px; text-align: center; }
 
-        /* The main blue bar that holds everything */
+        /* The blue bar that contains everything */
         .ticker-container {
             background: var(--accent-blue);
             color: white;
-            overflow: hidden;
+            overflow: hidden;       /* Anything outside this box is invisible */
             display: flex;
             align-items: center;
             height: 40px;
-            user-select: none;
+            user-select: none;      /* Stop users from highlighting text */
         }
 
-        /* The left section with "NEWS" text and arrows */
+        /* Left side: "NEWS" label + arrow buttons */
         .ticker-header {
             background: var(--accent-blue);
-            z-index: 10;
+            z-index: 10;            /* Sit on top of scrolling text */
             display: flex;
             align-items: center;
             height: 100%;
@@ -40,7 +39,6 @@
             padding-left: 0.5rem;
         }
 
-        /* Style for the "NEWS" word label */
         .ticker-label {
             font-weight: 800;
             white-space: nowrap;
@@ -49,7 +47,6 @@
             margin-right: 0.5rem;
         }
 
-        /* Box that holds the arrow buttons */
         .ticker-controls {
             display: flex;
             gap: 2px;
@@ -58,7 +55,7 @@
             padding-right: 1rem;
         }
 
-        /* Individual arrow button style */
+        /* Small clickable arrow buttons */
         .arrow-btn {
             width: 24px;
             height: 24px;
@@ -75,31 +72,36 @@
         .arrow-btn:hover { background: rgba(255,255,255,0.2); }
         .arrow-btn:active { background: var(--dark-blue); }
 
-        /* The "hole" that the news scrolls through */
+        /* Visible area where news scrolls through */
         .ticker-window {
-            flex-grow: 1;
+            flex-grow: 1;           /* Fill all remaining space */
             overflow: hidden;
             display: flex;
         }
 
-        /* The long line of text that moves */
+        /* The moving strip of news items */
         .ticker-track {
             display: flex;
-            width: max-content;
+            width: max-content;     /* As wide as all the items need */
             gap: var(--ticker-gap);
             padding-left: var(--ticker-gap);
             white-space: nowrap;
             animation: loop var(--ticker-duration) linear infinite;
-            will-change: transform;
+            will-change: transform; /* Hardware acceleration */
         }
 
-        /* CSS handles ALL pausing — desktop hover + mobile arrow class */
+        /*
+         * ALL pausing is done here in CSS
+         * Two triggers, same result:
+         *   1. Mouse hovers over the ticker   (desktop)
+         *   2. .is-manual class is added by JS (mobile arrows)
+         */
         .ticker-container:hover .ticker-track,
         .ticker-track.is-manual {
             animation-play-state: paused !important;
         }
 
-        /* Style for each news link */
+        /* Each clickable news headline */
         .ticker-item {
             color: white;
             text-decoration: none;
@@ -111,6 +113,11 @@
 
         .ticker-item:hover { text-decoration: underline; }
 
+        /*
+         * Scroll from 0% to -50%.
+         * Because the content is duplicated (doubled in JS),
+         * jumping back to 0% looks smooth.
+         */
         @keyframes loop {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); }
@@ -150,90 +157,132 @@
         (function initAdvancedTicker() {
             'use strict';
             
-            const ticker = document.getElementById('newsTickerInner');
-            const debugUI = document.getElementById('debugOutput');
-            const btnLeft = document.getElementById('btnLeft');
-            const btnRight = document.getElementById('btnRight');
+            /* ── Elements from the page ── */
+            const ticker   = document.getElementById('newsTickerInner'); // the moving strip of news
+            const debugUI  = document.getElementById('debugOutput');     // green status text at top
+            const btnLeft  = document.getElementById('btnLeft');         // ◀ arrow button
+            const btnRight = document.getElementById('btnRight');        // ▶ arrow button
+
+            /* Name used to save/load scroll position in browser memory */
             const KEY = 'tickerProgressMs';
 
-            // CLONE: double the content for smooth looping visual (css translateX -50%)
+            /*
+             * DUPLICATE all news items so the strip is 2x longer.
+             * When the animation reaches the halfway point (-50%),
+             * it jumps back to the start — and because both halves
+             * are identical, the user sees no jump. Smooth loop.
+             */
             ticker.innerHTML += ticker.innerHTML;
 
-            let moveDirection = 0;
-            let isHolding = false;
-            let anim = null;
+            /* ── State variables ── */
+            let moveDirection = 0;   // which way the arrow is pushing: -1 (right), 1 (left), 0 (none)
+            let isHolding     = false; // true while user is pressing an arrow button
+            let anim          = null;  // will hold the browser's Animation object for the ticker
 
-            // Manual scrub loop — runs every frame while arrow is held
+            /*
+             * manualMoveLoop()
+             * Runs once per screen frame (~60 times/sec) while an arrow is held.
+             * Each frame it nudges the animation forward or backward by 25ms.
+             * If it reaches the end, it wraps around to the start (and vice versa).
+             */
             function manualMoveLoop() {
-                if (!isHolding || !anim) return;
+                if (!isHolding || !anim) return; // stop if user released the button
 
-                const duration = anim.effect.getComputedTiming().duration;
-                let nextTime = anim.currentTime + (moveDirection * 25);
+                var duration = anim.effect.getComputedTiming().duration; // total animation length in ms
+                var nextTime = anim.currentTime + (moveDirection * 25);  // move 25ms in chosen direction
 
+                // wrap around: if we go past the end, start from beginning (and reverse)
                 if (nextTime < 0) nextTime = duration;
                 if (nextTime > duration) nextTime = 0;
 
-                anim.currentTime = nextTime;
-                requestAnimationFrame(manualMoveLoop);
+                anim.currentTime = nextTime; // jump animation to new position
+
+                requestAnimationFrame(manualMoveLoop); // do it again next frame
             }
 
+            /*
+             * startPersistence()
+             * Waits for the CSS animation to be ready, then:
+             *   1. Restores last scroll position from browser memory
+             *   2. Sets up arrow button controls
+             *   3. Saves scroll position every 100ms so it survives page reload
+             */
             function startPersistence() {
-                const animations = ticker.getAnimations();
-                
+
+                // CSS animation may not be ready on first frame — keep checking
+                var animations = ticker.getAnimations();
                 if (animations.length === 0) {
                     requestAnimationFrame(startPersistence);
                     return;
                 }
 
-                anim = animations[0];
-                const durationMs = anim.effect.getComputedTiming().duration;
+                anim = animations[0]; // store reference to the running animation
+                var durationMs = anim.effect.getComputedTiming().duration; // total loop time in ms
 
-                // Restore saved position
-                const savedMs = sessionStorage.getItem(KEY);
+                /* ── Restore: pick up where user left off ── */
+                var savedMs = sessionStorage.getItem(KEY);
                 if (savedMs !== null) {
                     anim.currentTime = parseFloat(savedMs);
                 }
 
-                // CSS class pauses the animation
-                const startMoving = (dir) => {
+                /*
+                 * startMoving(direction)
+                 * Called when user presses an arrow.
+                 * Adds .is-manual class → CSS instantly pauses the animation.
+                 * Then manualMoveLoop takes over to scrub frame by frame.
+                 */
+                var startMoving = function (dir) {
                     isHolding = true;
                     moveDirection = dir;
-                    ticker.classList.add('is-manual');
+                    ticker.classList.add('is-manual'); // CSS pauses animation instantly
                     manualMoveLoop();
                 };
 
-                const stopMoving = () => {
+                /*
+                 * stopMoving()
+                 * Called when user releases the arrow.
+                 * Removes .is-manual → CSS lets the animation play again.
+                 */
+                var stopMoving = function () {
                     isHolding = false;
-                    ticker.classList.remove('is-manual');
+                    ticker.classList.remove('is-manual'); // CSS resumes animation
                 };
 
-                // Left button
-                btnLeft.addEventListener('mousedown', () => startMoving(1));
-                btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); startMoving(1); });
-                
-                // Right button
-                btnRight.addEventListener('mousedown', () => startMoving(-1));
-                btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); startMoving(-1); });
-                
-                // Stop on release
-                [btnLeft, btnRight].forEach(btn => {
-                    btn.addEventListener('mouseup', stopMoving);
-                    btn.addEventListener('mouseleave', stopMoving);
-                    btn.addEventListener('touchend', stopMoving);
+                /* ── Arrow button listeners ── */
+
+                // Mouse (desktop)
+                btnLeft.addEventListener('mousedown',  function () { startMoving(1); });
+                btnRight.addEventListener('mousedown', function () { startMoving(-1); });
+
+                // Touch (mobile) — preventDefault stops page from scrolling
+                btnLeft.addEventListener('touchstart',  function (e) { e.preventDefault(); startMoving(1); });
+                btnRight.addEventListener('touchstart', function (e) { e.preventDefault(); startMoving(-1); });
+
+                // Stop when user lets go (works for both mouse and touch)
+                [btnLeft, btnRight].forEach(function (btn) {
+                    btn.addEventListener('mouseup',     stopMoving);
+                    btn.addEventListener('mouseleave',  stopMoving); // also stop if mouse slides off button
+                    btn.addEventListener('touchend',    stopMoving);
                     btn.addEventListener('touchcancel', stopMoving);
                 });
 
-                // Save progress every 100ms
-                setInterval(() => {
-                    const currentMs = anim.currentTime % durationMs;
+                /*
+                 * SAVE POSITION every 100ms
+                 * Uses sessionStorage so the ticker resumes from the same spot
+                 * if the user navigates away and comes back (same tab session).
+                 * Also updates the green debug bar at the top.
+                 */
+                setInterval(function () {
+                    var currentMs = anim.currentTime % durationMs; // keep within 0 → duration
                     if (!isNaN(currentMs)) {
                         sessionStorage.setItem(KEY, currentMs.toFixed(0));
-                        const progressPct = (currentMs / durationMs) * 100;
-                        debugUI.innerText = `Length: ${progressPct.toFixed(1)}% complete`;
+                        var progressPct = (currentMs / durationMs) * 100;
+                        debugUI.innerText = 'Persistence Active: ' + progressPct.toFixed(1) + '% complete';
                     }
                 }, 100);
             }
 
+            // Kick everything off
             startPersistence();
         })();
     </script>
